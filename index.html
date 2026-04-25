@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>The Ink — Articles by Vijey Prasanna</title>
   <link rel="stylesheet" href="style.css" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='12' fill='%231A1510'/><text y='74' x='50' text-anchor='middle' font-size='58' font-family='Georgia,serif' fill='%23C9973A'>I</text></svg>" />
 </head>
 <body>
 
@@ -133,11 +134,9 @@
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  // DATE
   document.getElementById('masthead-date').textContent =
     new Date().toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long', year:'numeric' }).toUpperCase();
 
-  // TOAST
   function showToast(msg, type = '') {
     const t = document.getElementById('toast');
     t.textContent = msg;
@@ -145,7 +144,6 @@
     setTimeout(() => t.className = 'toast', 3500);
   }
 
-  // MODAL
   const modal = document.getElementById('login-modal');
   function openModal() { modal.classList.add('open'); }
   function closeModal() { modal.classList.remove('open'); }
@@ -153,20 +151,28 @@
   modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
   document.getElementById('btn-login').addEventListener('click', openModal);
 
-  // LOGIN
+  // ── LOGIN ──
+  // saveUser is fire-and-forget — Firestore errors are silenced so they
+  // never surface to the user. The popup auth result is what matters.
   async function doLogin(ProviderClass) {
     try {
       const result = await signInWithPopup(auth, new ProviderClass());
-      const u = result.user;
-      await setDoc(doc(db, "users", u.uid), {
-        uid: u.uid, displayName: u.displayName,
-        email: u.email, photoURL: u.photoURL, lastLogin: serverTimestamp()
-      }, { merge: true });
+      // 1. Close modal immediately — auth succeeded
       closeModal();
-      showToast('Welcome, ' + u.displayName + '!', 'success');
+      showToast('Welcome, ' + result.user.displayName + '!', 'success');
+      // 2. Save profile in background, ignore any Firestore rule errors
+      setDoc(doc(db, "users", result.user.uid), {
+        uid: result.user.uid,
+        displayName: result.user.displayName,
+        email: result.user.email,
+        photoURL: result.user.photoURL,
+        lastLogin: serverTimestamp()
+      }, { merge: true }).catch(() => {/* silently ignored */});
     } catch (e) {
+      // Only surface real auth errors (popup closed, network, etc.)
+      if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') return;
+      showToast('Login failed. Please try again.', 'error');
       console.error(e);
-      showToast('Login failed: ' + e.message, 'error');
     }
   }
 
@@ -186,7 +192,7 @@
       document.getElementById('subscribe-done').style.display = 'block';
       showToast("Subscribed! You'll receive new articles by email.", 'success');
       loadSubCount();
-    } catch (e) { showToast(e.message, 'error'); }
+    } catch (e) { showToast('Could not subscribe. Try again.', 'error'); }
   });
 
   // AUTH STATE
@@ -208,7 +214,6 @@
     }
   });
 
-  // HELPERS
   function formatDate(ts) {
     if (!ts) return '';
     const d = ts.toDate ? ts.toDate() : new Date(ts);
@@ -218,7 +223,6 @@
     return Math.ceil((body ? body.split(/\s+/).length : 0) / 200) + ' min read';
   }
 
-  // LOAD ARTICLES
   async function loadArticles() {
     try {
       const snap = await getDocs(query(collection(db,"articles"), orderBy("createdAt","desc"), limit(10)));
@@ -226,16 +230,15 @@
       renderFeatured(articles[0]);
       renderGrid(articles.slice(1));
     } catch (e) {
-      console.error(e);
       document.getElementById('featured-container').innerHTML =
-        `<div class="empty-state"><h3>Could not load articles.</h3><p style="font-size:0.85rem;color:var(--ink-muted);">${e.message}</p></div>`;
+        `<div class="empty-state" style="text-align:center;padding:60px;"><h3>Could not load articles.</h3><p style="color:var(--ink-muted);font-size:0.85rem;margin-top:8px;">${e.message}</p></div>`;
       document.getElementById('articles-grid').innerHTML = '';
     }
   }
 
   function renderFeatured(a) {
     const el = document.getElementById('featured-container');
-    if (!a) { el.innerHTML = '<div class="empty-state"><h3>No articles yet.</h3><p>Check back soon.</p></div>'; return; }
+    if (!a) { el.innerHTML = '<div class="empty-state" style="text-align:center;padding:60px;"><h3>No articles yet.</h3><p style="color:var(--ink-muted);margin-top:8px;">Check back soon.</p></div>'; return; }
     el.innerHTML = `
       <div class="featured-grid">
         <div class="featured-image">
