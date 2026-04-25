@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Article — The Ink</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-date" id="masthead-date"></div>
+  <div class="masthead-title" style="font-size:clamp(1.8rem,4vw,3rem);padding:10px 0 6px;">
+    <a href="index.html" style="color:inherit;text-decoration:none;">The <span>Ink</span></a>
+  </div>
+  <div class="masthead-rule">
+    <nav class="masthead-nav"><a href="index.html">← Back to Home</a></nav>
+    <div class="auth-section" id="auth-section">
+      <button class="btn-auth" id="btn-login">Sign In</button>
+    </div>
+  </div>
+</header>
+
+<div id="article-container"><div class="loading-spinner">Loading article…</div></div>
+
+<footer>
+  <div class="footer-title">The Ink</div>
+  <p>© 2025 Vijey Prasanna · <a href="https://devverse1.in">Devverse</a></p>
+</footer>
+
+<!-- LOGIN MODAL -->
+<div class="modal-overlay" id="login-modal">
+  <div class="modal">
+    <button class="modal-close" id="modal-close">×</button>
+    <div class="modal-title">Sign In to Read</div>
+    <div class="modal-sub">Sign in to access all articles</div>
+    <button class="social-login-btn" id="btn-google">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+      </svg>
+      Continue with Google
+    </button>
+    <button class="social-login-btn" id="btn-facebook">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="#1877F2">
+        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+      </svg>
+      Continue with Facebook
+    </button>
+    <button class="social-login-btn" id="btn-twitter">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="#000">
+        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+      </svg>
+      Continue with X (Twitter)
+    </button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getAuth, signInWithPopup, GoogleAuthProvider, FacebookAuthProvider,
+    TwitterAuthProvider, signOut, onAuthStateChanged
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import {
+    getFirestore, getDoc, doc, setDoc, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const SUPER_ADMIN = "vjysupermacy@gmail.com";
+
+  const app = initializeApp({
+    apiKey: "AIzaSyBJuLSVj8RGQCuqdQno6_HqBK72KurzERE",
+    authDomain: "newsletter-643db.firebaseapp.com",
+    projectId: "newsletter-643db",
+    storageBucket: "newsletter-643db.firebasestorage.app",
+    messagingSenderId: "947442503465",
+    appId: "1:947442503465:web:7e5c13295883533ace7138"
+  });
+
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  document.getElementById('masthead-date').textContent =
+    new Date().toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long', year:'numeric' }).toUpperCase();
+
+  function showToast(msg, type='') {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.className = 'toast show ' + type;
+    setTimeout(() => t.className = 'toast', 3500);
+  }
+
+  const modal = document.getElementById('login-modal');
+  function openModal() { modal.classList.add('open'); }
+  function closeModal() { modal.classList.remove('open'); }
+  document.getElementById('modal-close').addEventListener('click', closeModal);
+  modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+  document.getElementById('btn-login').addEventListener('click', openModal);
+
+  let currentUser = null;
+  let currentArticle = null;
+
+  async function doLogin(ProviderClass) {
+    try {
+      const result = await signInWithPopup(auth, new ProviderClass());
+      const u = result.user;
+      await setDoc(doc(db, "users", u.uid), {
+        uid: u.uid, displayName: u.displayName,
+        email: u.email, photoURL: u.photoURL, lastLogin: serverTimestamp()
+      }, { merge: true });
+      closeModal();
+      showToast('Welcome, ' + u.displayName + '!', 'success');
+      if (currentArticle) renderArticle(currentArticle, u);
+    } catch(e) { showToast('Login failed: ' + e.message, 'error'); }
+  }
+
+  document.getElementById('btn-google').addEventListener('click', () => doLogin(GoogleAuthProvider));
+  document.getElementById('btn-facebook').addEventListener('click', () => doLogin(FacebookAuthProvider));
+  document.getElementById('btn-twitter').addEventListener('click', () => doLogin(TwitterAuthProvider));
+
+  onAuthStateChanged(auth, user => {
+    currentUser = user;
+    const section = document.getElementById('auth-section');
+    if (user) {
+      section.innerHTML = `
+        ${user.photoURL ? `<img src="${user.photoURL}" class="user-avatar" />` : ''}
+        <button class="btn-auth" id="btn-signout">Sign Out</button>`;
+      document.getElementById('btn-signout').addEventListener('click', async () => { await signOut(auth); });
+      if (currentArticle) renderArticle(currentArticle, user);
+    } else {
+      section.innerHTML = `<button class="btn-auth" id="btn-login-new">Sign In</button>`;
+      document.getElementById('btn-login-new').addEventListener('click', openModal);
+      if (currentArticle) renderArticle(currentArticle, null);
+    }
+  });
+
+  function formatDate(ts) {
+    if (!ts) return '';
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    return d.toLocaleDateString('en-IN', { day:'numeric', month:'long', year:'numeric' });
+  }
+  function readTime(body) {
+    return Math.ceil((body ? body.split(/\s+/).length : 0) / 200) + ' min read';
+  }
+  function renderBody(body) {
+    if (!body) return '<p><em>No content.</em></p>';
+    return body.split('\n\n').map(p => p.trim()).filter(Boolean).map(p => {
+      if (p.startsWith('## ')) return `<h2>${p.slice(3)}</h2>`;
+      if (p.startsWith('> ')) return `<blockquote>${p.slice(2)}</blockquote>`;
+      return `<p>${p}</p>`;
+    }).join('');
+  }
+
+  function renderArticle(a, user) {
+    const container = document.getElementById('article-container');
+    const isLocked = !user;
+    const bodyHTML = isLocked
+      ? `<div class="locked-overlay">${renderBody(a.body).substring(0, 600)}…</div>
+         <div style="text-align:center;padding:40px 20px;">
+           <p style="font-family:'DM Sans',sans-serif;font-size:0.85rem;letter-spacing:0.08em;color:var(--ink-muted);margin-bottom:16px;">Sign in to read the full article</p>
+           <button class="btn-publish" id="btn-signin-read" style="background:var(--accent);">Sign In to Continue Reading</button>
+         </div>`
+      : renderBody(a.body);
+
+    container.innerHTML = `
+      ${a.coverURL ? `<img class="article-hero" src="${a.coverURL}" alt="${a.title}" />` : ''}
+      <div class="article-reader">
+        <span class="article-tag" style="margin-bottom:14px;display:block;">${a.tag || 'Essay'}</span>
+        <h1 class="article-reader-title">${a.title}</h1>
+        <div class="article-meta" style="margin-bottom:32px;padding-bottom:20px;border-bottom:1px solid var(--rule);">
+          <span>${a.author || 'Vijey Prasanna'}</span>
+          <span class="dot">·</span><span>${formatDate(a.createdAt)}</span>
+          <span class="dot">·</span><span>${readTime(a.body)}</span>
+        </div>
+        <div class="article-body">${bodyHTML}</div>
+        ${!isLocked ? `
+        <div style="margin-top:48px;padding-top:24px;border-top:3px double var(--rule);text-align:center;">
+          <p style="font-family:'Playfair Display',serif;font-size:1.4rem;font-style:italic;margin-bottom:16px;">Enjoyed this article?</p>
+          <a href="index.html" style="text-decoration:none;display:inline-block;padding:12px 28px;background:var(--ink);color:var(--cream);font-family:'DM Sans',sans-serif;font-size:0.75rem;letter-spacing:0.15em;text-transform:uppercase;">Read More Articles</a>
+        </div>` : ''}
+      </div>`;
+
+    if (isLocked) {
+      document.getElementById('btn-signin-read')?.addEventListener('click', openModal);
+    }
+  }
+
+  // LOAD
+  const id = new URLSearchParams(location.search).get('id');
+  if (!id) {
+    document.getElementById('article-container').innerHTML = '<div class="empty-state" style="padding:80px 20px;text-align:center;"><h3>Article not found.</h3></div>';
+  } else {
+    getDoc(doc(db, "articles", id)).then(snap => {
+      if (!snap.exists()) {
+        document.getElementById('article-container').innerHTML = '<div class="empty-state" style="padding:80px 20px;text-align:center;"><h3>Article not found.</h3></div>';
+        return;
+      }
+      currentArticle = { id: snap.id, ...snap.data() };
+      document.title = currentArticle.title + ' — The Ink';
+      renderArticle(currentArticle, currentUser);
+    }).catch(e => {
+      document.getElementById('article-container').innerHTML =
+        `<div class="empty-state" style="padding:80px 20px;text-align:center;"><h3>Error loading article.</h3><p>${e.message}</p></div>`;
+    });
+  }
+</script>
+</body>
+</html>
