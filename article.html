@@ -5,6 +5,75 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Article — The Ink</title>
   <link rel="stylesheet" href="style.css" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='12' fill='%231A1510'/><text y='74' x='50' text-anchor='middle' font-size='58' font-family='Georgia,serif' fill='%23C9973A'>I</text></svg>" />
+  <style>
+    .title-cover {
+      width: 100%;
+      min-height: 360px;
+      background: linear-gradient(135deg, #1A1510 55%, #2E2318);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 60px 40px;
+      position: relative;
+      overflow: hidden;
+    }
+    .title-cover::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: 0.05;
+      background: repeating-linear-gradient(45deg, #C9973A 0, #C9973A 1px, transparent 0, transparent 50%);
+      background-size: 12px 12px;
+    }
+    .title-cover::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 80px;
+      background: linear-gradient(to bottom, transparent, var(--cream));
+    }
+    .title-cover-tag {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.7rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: #C9973A;
+      margin-bottom: 20px;
+      position: relative;
+      z-index: 1;
+    }
+    .title-cover-text {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2rem, 5vw, 3.6rem);
+      font-weight: 700;
+      color: #F5F0E8;
+      line-height: 1.15;
+      max-width: 800px;
+      position: relative;
+      z-index: 1;
+    }
+    .title-cover-rule {
+      width: 48px;
+      height: 2px;
+      background: #C9973A;
+      margin: 24px auto 0;
+      position: relative;
+      z-index: 1;
+    }
+    .title-cover-byline {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.68rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #7A6E5F;
+      margin-top: 14px;
+      position: relative;
+      z-index: 1;
+    }
+  </style>
 </head>
 <body>
 
@@ -71,7 +140,6 @@
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   const SUPER_ADMIN = "vjysupermacy@gmail.com";
-
   const app = initializeApp({
     apiKey: "AIzaSyBJuLSVj8RGQCuqdQno6_HqBK72KurzERE",
     authDomain: "newsletter-643db.firebaseapp.com",
@@ -106,15 +174,18 @@
   async function doLogin(ProviderClass) {
     try {
       const result = await signInWithPopup(auth, new ProviderClass());
-      const u = result.user;
-      await setDoc(doc(db, "users", u.uid), {
-        uid: u.uid, displayName: u.displayName,
-        email: u.email, photoURL: u.photoURL, lastLogin: serverTimestamp()
-      }, { merge: true });
       closeModal();
-      showToast('Welcome, ' + u.displayName + '!', 'success');
-      if (currentArticle) renderArticle(currentArticle, u);
-    } catch(e) { showToast('Login failed: ' + e.message, 'error'); }
+      showToast('Welcome, ' + result.user.displayName + '!', 'success');
+      setDoc(doc(db, "users", result.user.uid), {
+        uid: result.user.uid, displayName: result.user.displayName,
+        email: result.user.email, photoURL: result.user.photoURL,
+        lastLogin: serverTimestamp()
+      }, { merge: true }).catch(() => {});
+      if (currentArticle) renderArticle(currentArticle, result.user);
+    } catch(e) {
+      if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') return;
+      showToast('Login failed. Please try again.', 'error');
+    }
   }
 
   document.getElementById('btn-google').addEventListener('click', () => doLogin(GoogleAuthProvider));
@@ -154,9 +225,20 @@
     }).join('');
   }
 
+  function makeTitleCover(a) {
+    return `
+      <div class="title-cover">
+        <div class="title-cover-tag">${a.tag || 'Essay'}</div>
+        <div class="title-cover-text">${a.title}</div>
+        <div class="title-cover-rule"></div>
+        <div class="title-cover-byline">Vijey Prasanna · The Ink</div>
+      </div>`;
+  }
+
   function renderArticle(a, user) {
     const container = document.getElementById('article-container');
     const isLocked = !user;
+
     const bodyHTML = isLocked
       ? `<div class="locked-overlay">${renderBody(a.body).substring(0, 600)}…</div>
          <div style="text-align:center;padding:40px 20px;">
@@ -166,10 +248,8 @@
       : renderBody(a.body);
 
     container.innerHTML = `
-      ${a.coverURL ? `<img class="article-hero" src="${a.coverURL}" alt="${a.title}" />` : ''}
+      ${makeTitleCover(a)}
       <div class="article-reader">
-        <span class="article-tag" style="margin-bottom:14px;display:block;">${a.tag || 'Essay'}</span>
-        <h1 class="article-reader-title">${a.title}</h1>
         <div class="article-meta" style="margin-bottom:32px;padding-bottom:20px;border-bottom:1px solid var(--rule);">
           <span>${a.author || 'Vijey Prasanna'}</span>
           <span class="dot">·</span><span>${formatDate(a.createdAt)}</span>
@@ -188,14 +268,15 @@
     }
   }
 
-  // LOAD
   const id = new URLSearchParams(location.search).get('id');
   if (!id) {
-    document.getElementById('article-container').innerHTML = '<div class="empty-state" style="padding:80px 20px;text-align:center;"><h3>Article not found.</h3></div>';
+    document.getElementById('article-container').innerHTML =
+      '<div class="empty-state" style="padding:80px 20px;text-align:center;"><h3>Article not found.</h3></div>';
   } else {
     getDoc(doc(db, "articles", id)).then(snap => {
       if (!snap.exists()) {
-        document.getElementById('article-container').innerHTML = '<div class="empty-state" style="padding:80px 20px;text-align:center;"><h3>Article not found.</h3></div>';
+        document.getElementById('article-container').innerHTML =
+          '<div class="empty-state" style="padding:80px 20px;text-align:center;"><h3>Article not found.</h3></div>';
         return;
       }
       currentArticle = { id: snap.id, ...snap.data() };
@@ -203,7 +284,7 @@
       renderArticle(currentArticle, currentUser);
     }).catch(e => {
       document.getElementById('article-container').innerHTML =
-        `<div class="empty-state" style="padding:80px 20px;text-align:center;"><h3>Error loading article.</h3><p>${e.message}</p></div>`;
+        `<div class="empty-state" style="padding:80px 20px;text-align:center;"><h3>Error loading article.</h3><p style="color:var(--ink-muted);margin-top:8px;">${e.message}</p></div>`;
     });
   }
 </script>
