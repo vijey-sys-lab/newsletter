@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — The Ink</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='12' fill='%231A1510'/><text y='74' x='50' text-anchor='middle' font-size='58' font-family='Georgia,serif' fill='%23C9973A'>I</text></svg>" />
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-date" id="masthead-date"></div>
+  <div class="masthead-title" style="font-size:clamp(1.8rem,4vw,3rem);padding:10px 0 6px;">
+    <a href="index.html" style="color:inherit;text-decoration:none;">The <span>Ink</span></a>
+  </div>
+  <div class="masthead-rule">
+    <nav class="masthead-nav">
+      <a href="index.html">← Home</a>
+      <a href="admin.html" class="active">Admin Panel</a>
+    </nav>
+    <div class="auth-section" id="auth-section"></div>
+  </div>
+</header>
+
+<div id="access-denied" style="display:none;" class="page-wrapper">
+  <div class="empty-state" style="padding:100px 20px;text-align:center;">
+    <h3>Access Denied</h3>
+    <p style="margin-top:10px;color:var(--ink-muted);">This page is only accessible to the super admin.</p>
+    <a href="index.html" style="display:inline-block;margin-top:20px;font-family:'DM Sans',sans-serif;font-size:0.75rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent);">Go Home →</a>
+  </div>
+</div>
+
+<div id="loading-state" style="padding:80px;text-align:center;font-family:'DM Sans',sans-serif;font-size:0.8rem;letter-spacing:0.1em;color:var(--ink-muted);">Verifying access…</div>
+
+<div id="admin-panel" style="display:none;">
+  <div class="admin-wrapper">
+    <div class="admin-title"><span>✦</span> Publish New Article</div>
+
+    <div style="background:var(--white);border:1px solid var(--rule);padding:36px;">
+
+      <!-- LIVE COVER PREVIEW -->
+      <div style="margin-bottom:28px;">
+        <label class="form-label">Cover Preview (auto-generated from title)</label>
+        <div id="cover-preview-box" style="
+          width:100%; height:200px;
+          background: linear-gradient(135deg, #1A1510 60%, #3D3328);
+          display:flex; flex-direction:column;
+          align-items:center; justify-content:center;
+          border:1px solid var(--rule);
+          padding: 24px;
+          text-align:center;
+          position:relative;
+          overflow:hidden;
+        ">
+          <div style="position:absolute;inset:0;opacity:0.06;background:repeating-linear-gradient(45deg,#C9973A 0,#C9973A 1px,transparent 0,transparent 50%);background-size:12px 12px;"></div>
+          <div style="font-family:'Playfair Display',serif;font-size:1.1rem;color:#9A8E7E;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:10px;" id="preview-tag">Essay</div>
+          <div style="font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:700;color:#F5F0E8;line-height:1.2;max-width:600px;" id="preview-title">Your article title will appear here</div>
+          <div style="margin-top:16px;width:40px;height:2px;background:#C9973A;"></div>
+          <div style="font-family:'DM Sans',sans-serif;font-size:0.7rem;letter-spacing:0.2em;text-transform:uppercase;color:#7A6E5F;margin-top:12px;">Vijey Prasanna · The Ink</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Article Title *</label>
+        <input type="text" class="form-input" id="art-title" placeholder="Enter a compelling title…" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Short Excerpt (shown on cards)</label>
+        <input type="text" class="form-input" id="art-excerpt" placeholder="A one-line summary of the article…" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Category / Tag</label>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <select class="form-input" id="art-tag" style="flex:1;"></select>
+          <button id="btn-add-category" type="button" style="white-space:nowrap;background:transparent;border:1px solid var(--accent);color:var(--accent);font-family:'DM Sans',sans-serif;font-size:0.72rem;letter-spacing:0.1em;text-transform:uppercase;padding:10px 16px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='var(--accent)';this.style.color='var(--cream)'" onmouseout="this.style.background='transparent';this.style.color='var(--accent)'">+ New Category</button>
+        </div>
+        <!-- Add category inline -->
+        <div id="add-cat-box" style="display:none;margin-top:10px;display:none;gap:8px;align-items:center;">
+          <input type="text" id="new-cat-input" class="form-input" placeholder="Category name…" style="flex:1;margin:0;" />
+          <button id="btn-save-category" type="button" style="background:var(--ink);color:var(--cream);border:none;font-family:'DM Sans',sans-serif;font-size:0.72rem;letter-spacing:0.1em;text-transform:uppercase;padding:10px 16px;cursor:pointer;">Save</button>
+          <button id="btn-cancel-category" type="button" style="background:transparent;border:1px solid var(--rule);color:var(--ink-muted);font-family:'DM Sans',sans-serif;font-size:0.72rem;padding:10px 16px;cursor:pointer;">Cancel</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Article Body *</label>
+        <p style="font-family:'DM Sans',sans-serif;font-size:0.7rem;color:var(--ink-muted);margin-bottom:8px;">
+          Use double line breaks for paragraphs. <code>## </code> for headings. <code>&gt; </code> for blockquotes.
+        </p>
+        <textarea class="form-textarea" id="art-body" placeholder="Write your article here…&#10;&#10;Use double line breaks to separate paragraphs.&#10;&#10;## This becomes a heading&#10;&#10;&gt; This becomes a blockquote"></textarea>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+        <button class="btn-publish" id="publish-btn">Publish Article</button>
+        <button class="btn-publish" id="clear-btn" style="background:transparent;color:var(--ink-muted);border:1px solid var(--rule);">Clear</button>
+        <span id="publish-status" style="font-family:'DM Sans',sans-serif;font-size:0.8rem;color:var(--ink-muted);"></span>
+      </div>
+    </div>
+
+    <div style="margin-top:48px;">
+      <div class="section-label"><span>Published Articles</span></div>
+      <div id="published-list"><div class="loading-spinner">Loading…</div></div>
+    </div>
+
+    <div style="margin-top:48px;">
+      <div class="section-label"><span>Subscribers</span></div>
+      <div id="subscribers-list"><div class="loading-spinner">Loading…</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- EDIT ARTICLE MODAL -->
+<div id="edit-modal" style="display:none;position:fixed;inset:0;background:rgba(26,21,16,0.7);z-index:1000;overflow-y:auto;padding:40px 20px;">
+  <div style="max-width:760px;margin:0 auto;background:var(--cream);border:1px solid var(--rule);padding:40px;position:relative;">
+    <button onclick="closeEditModal()" style="position:absolute;top:16px;right:20px;background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--ink-muted);">×</button>
+    <div style="font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700;color:var(--ink);margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid var(--ink);">Edit Article</div>
+    <input type="hidden" id="edit-id" />
+    <div class="form-group">
+      <label class="form-label">Title *</label>
+      <input type="text" class="form-input" id="edit-title" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Excerpt</label>
+      <input type="text" class="form-input" id="edit-excerpt" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Category / Tag</label>
+      <select class="form-input" id="edit-tag"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Body *</label>
+      <textarea class="form-textarea" id="edit-body" style="min-height:300px;"></textarea>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:8px;">
+      <button id="btn-save-edit" class="btn-publish">Save Changes</button>
+      <button onclick="closeEditModal()" class="btn-publish" style="background:transparent;color:var(--ink-muted);border:1px solid var(--rule);">Cancel</button>
+      <span id="edit-status" style="font-family:'DM Sans',sans-serif;font-size:0.8rem;color:var(--ink-muted);align-self:center;"></span>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import {
+    getFirestore, collection, addDoc, getDocs,
+    query, orderBy, serverTimestamp, deleteDoc, doc, updateDoc, getDoc
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const SUPER_ADMIN = "vjysupermacy@gmail.com";
+  const app = initializeApp({
+    apiKey: "AIzaSyBJuLSVj8RGQCuqdQno6_HqBK72KurzERE",
+    authDomain: "newsletter-643db.firebaseapp.com",
+    projectId: "newsletter-643db",
+    storageBucket: "newsletter-643db.firebasestorage.app",
+    messagingSenderId: "947442503465",
+    appId: "1:947442503465:web:7e5c13295883533ace7138"
+  });
+
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  // Default categories
+  const DEFAULT_CATS = ["Essay","Technology","Business","Story","Career","Tutorial","Interview","News"];
+  let allCategories = [...DEFAULT_CATS];
+
+  document.getElementById('masthead-date').textContent =
+    new Date().toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long', year:'numeric' }).toUpperCase();
+
+  function showToast(msg, type='') {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.className = 'toast show ' + type;
+    setTimeout(() => t.className = 'toast', 3500);
+  }
+
+  // ── CATEGORIES ────────────────────────────────────────────────────────────
+  async function loadCategories() {
+    try {
+      const snap = await getDocs(collection(db, "categories"));
+      const custom = snap.docs.map(d => d.data().name).filter(Boolean);
+      allCategories = [...new Set([...DEFAULT_CATS, ...custom])].sort();
+    } catch(e) {}
+    populateCategorySelects();
+  }
+
+  function populateCategorySelects() {
+    ['art-tag','edit-tag'].forEach(id => {
+      const sel = document.getElementById(id);
+      if (!sel) return;
+      const cur = sel.value;
+      sel.innerHTML = allCategories.map(c =>
+        `<option value="${c}"${c===cur?' selected':''}>${c}</option>`
+      ).join('');
+    });
+    // Update preview
+    document.getElementById('preview-tag').textContent =
+      document.getElementById('art-tag').value || 'Essay';
+  }
+
+  // Add category button
+  document.getElementById('btn-add-category').addEventListener('click', () => {
+    const box = document.getElementById('add-cat-box');
+    box.style.display = box.style.display === 'flex' ? 'none' : 'flex';
+    if (box.style.display === 'flex') document.getElementById('new-cat-input').focus();
+  });
+  document.getElementById('btn-cancel-category').addEventListener('click', () => {
+    document.getElementById('add-cat-box').style.display = 'none';
+    document.getElementById('new-cat-input').value = '';
+  });
+  document.getElementById('btn-save-category').addEventListener('click', async () => {
+    const name = document.getElementById('new-cat-input').value.trim();
+    if (!name) { showToast('Enter a category name.', 'error'); return; }
+    if (allCategories.map(c=>c.toLowerCase()).includes(name.toLowerCase())) {
+      showToast('Category already exists.', 'error'); return;
+    }
+    try {
+      await addDoc(collection(db, "categories"), { name, createdAt: serverTimestamp() });
+      allCategories = [...new Set([...allCategories, name])].sort();
+      populateCategorySelects();
+      // Set newly created cat as selected
+      document.getElementById('art-tag').value = name;
+      document.getElementById('preview-tag').textContent = name;
+      document.getElementById('new-cat-input').value = '';
+      document.getElementById('add-cat-box').style.display = 'none';
+      showToast(`Category "${name}" added!`, 'success');
+    } catch(e) {
+      showToast('Error: ' + e.message, 'error');
+    }
+  });
+
+  // Live preview
+  document.getElementById('art-title').addEventListener('input', function() {
+    document.getElementById('preview-title').textContent = this.value || 'Your article title will appear here';
+  });
+  document.getElementById('art-tag').addEventListener('change', function() {
+    document.getElementById('preview-tag').textContent = this.value;
+  });
+
+  // Clear form
+  document.getElementById('clear-btn').addEventListener('click', () => {
+    ['art-title','art-excerpt','art-body'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('art-tag').selectedIndex = 0;
+    document.getElementById('preview-title').textContent = 'Your article title will appear here';
+    document.getElementById('preview-tag').textContent = document.getElementById('art-tag').value || 'Essay';
+  });
+
+  // Publish
+  document.getElementById('publish-btn').addEventListener('click', async () => {
+    const title = document.getElementById('art-title').value.trim();
+    const excerpt = document.getElementById('art-excerpt').value.trim();
+    const body = document.getElementById('art-body').value.trim();
+    const tag = document.getElementById('art-tag').value;
+    if (!title || !body) { showToast('Title and body are required.', 'error'); return; }
+    const btn = document.getElementById('publish-btn');
+    const status = document.getElementById('publish-status');
+    btn.disabled = true; btn.textContent = 'Publishing…'; status.textContent = 'Saving…';
+    try {
+      await addDoc(collection(db, "articles"), {
+        title, excerpt, body, tag, coverURL: '',
+        createdAt: serverTimestamp(), author: "Vijey Prasanna"
+      });
+      showToast('Article published successfully!', 'success');
+      document.getElementById('clear-btn').click();
+      loadPublished();
+    } catch(e) {
+      showToast('Error: ' + e.message, 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Publish Article'; status.textContent = '';
+    }
+  });
+
+  // ── AUTH ──────────────────────────────────────────────────────────────────
+  onAuthStateChanged(auth, user => {
+    document.getElementById('loading-state').style.display = 'none';
+    const section = document.getElementById('auth-section');
+    if (!user) {
+      section.innerHTML = `<button class="btn-auth primary" id="btn-admin-login">Sign In as Admin</button>`;
+      document.getElementById('btn-admin-login').addEventListener('click', async () => {
+        try { await signInWithPopup(auth, new GoogleAuthProvider()); }
+        catch(e) { showToast('Login failed', 'error'); }
+      });
+      document.getElementById('access-denied').style.display = 'block';
+      document.getElementById('admin-panel').style.display = 'none';
+      return;
+    }
+    section.innerHTML = `
+      ${user.photoURL ? `<img src="${user.photoURL}" class="user-avatar" />` : ''}
+      <span style="font-family:'DM Sans',sans-serif;font-size:0.72rem;color:#9A8E7E;">${user.email}</span>
+      <button class="btn-auth" id="btn-signout">Sign Out</button>`;
+    document.getElementById('btn-signout').addEventListener('click', async () => { await signOut(auth); });
+    if (user.email !== SUPER_ADMIN) {
+      document.getElementById('access-denied').style.display = 'block';
+      document.getElementById('admin-panel').style.display = 'none';
+    } else {
+      document.getElementById('access-denied').style.display = 'none';
+      document.getElementById('admin-panel').style.display = 'block';
+      loadCategories();
+      loadPublished();
+      loadSubscribers();
+    }
+  });
+
+  function formatDate(ts) {
+    if (!ts) return '—';
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    return d.toLocaleDateString('en-IN');
+  }
+
+  // ── PUBLISHED LIST ────────────────────────────────────────────────────────
+  async function loadPublished() {
+    try {
+      const snap = await getDocs(query(collection(db,"articles"), orderBy("createdAt","desc")));
+      const articles = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const list = document.getElementById('published-list');
+      if (!articles.length) { list.innerHTML = '<p style="color:var(--ink-muted);font-style:italic;">No articles yet.</p>'; return; }
+      list.innerHTML = `<table style="width:100%;border-collapse:collapse;font-family:'DM Sans',sans-serif;font-size:0.82rem;">
+        <thead><tr style="border-bottom:2px solid var(--ink);">
+          <th style="text-align:left;padding:8px 12px;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-muted);">Title</th>
+          <th style="text-align:left;padding:8px 12px;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-muted);">Tag</th>
+          <th style="text-align:left;padding:8px 12px;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-muted);">Date</th>
+          <th style="text-align:left;padding:8px 12px;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-muted);">Actions</th>
+        </tr></thead>
+        <tbody>
+          ${articles.map(a => `<tr style="border-bottom:1px solid var(--rule);">
+            <td style="padding:10px 12px;color:var(--ink);font-weight:500;">${a.title}</td>
+            <td style="padding:10px 12px;color:var(--ink-muted);">${a.tag || '—'}</td>
+            <td style="padding:10px 12px;color:var(--ink-muted);">${formatDate(a.createdAt)}</td>
+            <td style="padding:10px 12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+              <a href="article.html?id=${a.id}" target="_blank" style="color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent);font-family:'DM Sans',sans-serif;font-size:0.72rem;letter-spacing:0.08em;">View →</a>
+              <button onclick="openEditModal('${a.id}')" style="background:none;border:1px solid var(--accent);color:var(--accent);padding:4px 12px;font-family:'DM Sans',sans-serif;font-size:0.72rem;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='var(--accent)';this.style.color='var(--cream)'" onmouseout="this.style.background='none';this.style.color='var(--accent)'">Edit</button>
+              <button onclick="deleteArticle('${a.id}', this)" style="background:none;border:1px solid #8B2E2E;color:#8B2E2E;padding:4px 12px;font-family:'DM Sans',sans-serif;font-size:0.72rem;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='#8B2E2E';this.style.color='#fff'" onmouseout="this.style.background='none';this.style.color='#8B2E2E'">Delete</button>
+            </td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+    } catch(e) {
+      document.getElementById('published-list').innerHTML = '<p style="color:var(--ink-muted);">Could not load articles.</p>';
+    }
+  }
+
+  window.deleteArticle = async function(id, btn) {
+    if (!confirm('Delete this article? This cannot be undone.')) return;
+    btn.textContent = 'Deleting…'; btn.disabled = true;
+    try {
+      await deleteDoc(doc(db, "articles", id));
+      showToast('Article deleted.', 'success');
+      loadPublished();
+    } catch(e) {
+      showToast('Error: ' + e.message, 'error');
+      btn.textContent = 'Delete'; btn.disabled = false;
+    }
+  };
+
+  // ── EDIT MODAL ────────────────────────────────────────────────────────────
+  window.openEditModal = async function(id) {
+    const modal = document.getElementById('edit-modal');
+    modal.style.display = 'block';
+    document.getElementById('edit-status').textContent = 'Loading…';
+    try {
+      const snap = await getDoc(doc(db, "articles", id));
+      if (!snap.exists()) { showToast('Article not found.', 'error'); closeEditModal(); return; }
+      const a = snap.data();
+      document.getElementById('edit-id').value = id;
+      document.getElementById('edit-title').value = a.title || '';
+      document.getElementById('edit-excerpt').value = a.excerpt || '';
+      document.getElementById('edit-body').value = a.body || '';
+      // Populate tag select and set value
+      const editTagSel = document.getElementById('edit-tag');
+      editTagSel.innerHTML = allCategories.map(c =>
+        `<option value="${c}"${c===a.tag?' selected':''}>${c}</option>`
+      ).join('');
+      document.getElementById('edit-status').textContent = '';
+    } catch(e) {
+      showToast('Error loading article: ' + e.message, 'error');
+      closeEditModal();
+    }
+  };
+
+  window.closeEditModal = function() {
+    document.getElementById('edit-modal').style.display = 'none';
+  };
+
+  document.getElementById('btn-save-edit').addEventListener('click', async () => {
+    const id = document.getElementById('edit-id').value;
+    const title = document.getElementById('edit-title').value.trim();
+    const excerpt = document.getElementById('edit-excerpt').value.trim();
+    const body = document.getElementById('edit-body').value.trim();
+    const tag = document.getElementById('edit-tag').value;
+    if (!title || !body) { showToast('Title and body are required.', 'error'); return; }
+    const btn = document.getElementById('btn-save-edit');
+    const status = document.getElementById('edit-status');
+    btn.disabled = true; btn.textContent = 'Saving…'; status.textContent = '';
+    try {
+      await updateDoc(doc(db, "articles", id), { title, excerpt, body, tag });
+      showToast('Article updated!', 'success');
+      closeEditModal();
+      loadPublished();
+    } catch(e) {
+      showToast('Error: ' + e.message, 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Save Changes';
+    }
+  });
+
+  // Close edit modal on overlay click
+  document.getElementById('edit-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeEditModal();
+  });
+
+  // ── SUBSCRIBERS ───────────────────────────────────────────────────────────
+  async function loadSubscribers() {
+    try {
+      const snap = await getDocs(query(collection(db,"subscribers"), orderBy("subscribedAt","desc")));
+      const list = document.getElementById('subscribers-list');
+      if (snap.empty) { list.innerHTML = '<p style="color:var(--ink-muted);font-style:italic;">No subscribers yet.</p>'; return; }
+      const subs = snap.docs.map(d => d.data());
+      list.innerHTML = `
+        <p style="font-family:'DM Sans',sans-serif;font-size:0.8rem;color:var(--ink-muted);margin-bottom:12px;">${subs.length} subscriber${subs.length!==1?'s':''}</p>
+        <table style="width:100%;border-collapse:collapse;font-family:'DM Sans',sans-serif;font-size:0.82rem;">
+          <thead><tr style="border-bottom:2px solid var(--ink);">
+            <th style="text-align:left;padding:8px 12px;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-muted);">Email</th>
+            <th style="text-align:left;padding:8px 12px;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-muted);">Subscribed On</th>
+          </tr></thead>
+          <tbody>
+            ${subs.map(s => `<tr style="border-bottom:1px solid var(--rule);">
+              <td style="padding:10px 12px;">${s.email}</td>
+              <td style="padding:10px 12px;color:var(--ink-muted);">${formatDate(s.subscribedAt)}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>`;
+    } catch(e) {
+      document.getElementById('subscribers-list').innerHTML = '<p style="color:var(--ink-muted);">Could not load subscribers.</p>';
+    }
+  }
+</script>
+</body>
+</html>
